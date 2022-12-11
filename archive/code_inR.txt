@@ -1,0 +1,291 @@
+# setup ------------------------------------------------------------------------
+
+ 
+
+library(tidyverse)
+
+library(rvest)
+
+ 
+
+# functions --------------------------------------------------------------------
+
+ 
+
+fn_get_search_page <- function(isbn) {
+
+  paste0(
+
+    "https://www.amazon.de/s?k=",
+
+    isbn,
+
+    "&i=stripbooks"
+
+  ) %>% 
+
+    read_html()
+
+}
+
+ 
+
+ 
+
+fn_timer <- function(min = 60) {
+
+  cat("\r timer \n")
+
+  for(s in seq(min * 60, 0)) {
+
+    cat("\r", floor(s/60), ":", str_pad(s %% 60, 2, "left", "0"), "   ")
+
+    Sys.sleep(1)
+
+  }
+
+}
+
+ 
+
+fn_asin <- function(page) {
+
+  page %>% 
+
+    html_node(".s-result-item") %>% 
+
+    html_attr("data-asin")
+
+}
+
+ 
+
+fn_author <-  function(page) {
+
+  page %>% 
+
+    html_node(".a-color-secondary .a-size-base+ .a-size-base") %>% 
+
+    html_text()
+
+}
+
+ 
+
+fn_title <-  function(page) {
+
+  page %>% 
+
+    html_node(".a-size-medium") %>% 
+
+    html_text()
+
+}
+
+ 
+
+fn_reviews_count <-  function(page) {
+
+  count <- page %>% 
+
+    html_node(".a-size-small .a-size-base") %>% 
+
+    html_text() %>% 
+
+    str_remove_all("[:punct:]") %>%
+
+    as.integer()
+
+}
+
+ 
+
+fn_reviews_overall <- function(page) {
+
+  page %>% 
+
+    html_node(".a-icon-star-small") %>% 
+
+    html_text() %>% 
+
+    str_extract("^[:digit:],[:digit:]") %>%
+
+    str_replace(",", ".") %>% 
+
+    as.numeric()
+
+}
+
+ 
+
+# get search pages -------------------------------------------------------------
+
+ 
+
+# raw
+
+isbns <- "01_data/fantasy.txt" %>% 
+
+  read_csv() %>% 
+
+  pull(EAN) %>% 
+
+  as.character()
+
+ 
+
+# remove saved
+
+if(file.exists("03_analysis/amazon_searchpage.rds")) {
+
+  done  <- pull(read_rds("03_analysis/amazon_searchpage.rds"), EAN)
+
+  isbns <- isbns[!(isbns %in% done)]
+
+}
+
+ 
+
+repeat {
+
+  
+
+  if(exists("pages")) {
+
+    isbns <- isbns[!(isbns %in% names(pages))]
+
+    
+
+    if(length(isbns) == 0) {
+
+      break
+
+    }
+
+    
+
+    if(length(pages) %% 100 == 0) {
+
+      fn_timer()
+
+    }
+
+  }
+
+  
+
+  isbn <- isbns[1]
+
+  
+
+  page <- fn_get_search_page(isbn)
+
+  
+
+  if(
+
+    page %>%
+
+    html_node("body") %>% 
+
+    html_text() %>% 
+
+    str_detect("sicher sein dass Sie kein Bot sind")
+
+  ) {
+
+    fn_timer()
+
+    next
+
+  }
+
+  
+
+  asin <- fn_asin(page)
+
+  
+
+  if(!is.na(asin)) {
+
+    if(exists("pages")) {
+
+      pages <- append(pages, set_names(list(page), isbn))
+
+    } else {
+
+      pages <- set_names(list(page), isbn)
+
+    }
+
+  }
+
+  Sys.sleep(1)
+
+  cat("\r", length(pages))
+
+}
+
+ 
+
+ 
+
+# extract relevant data --------------------------------------------------------
+
+ 
+
+d <- map_chr(pages, fn_asin) %>% 
+
+  enframe(name = "EAN", value = "asin") %>% 
+
+  left_join(
+
+    enframe(
+
+      map_chr(pages, fn_author),
+
+      name = "EAN", value = "author_name"
+
+    )
+
+  ) %>% 
+
+  mutate(author_name = str_remove_all(author_name, "\n")) %>% 
+
+  left_join(
+
+    enframe(
+
+      map_chr(pages, fn_title),
+
+      name = "EAN", value = "title"
+
+    )
+
+  ) %>% 
+
+  left_join(
+
+    enframe(
+
+      map_int(pages, fn_reviews_count),
+
+      name = "EAN", value = "review_count"
+
+    )
+
+  ) %>% 
+
+  replace_na(list(review_count = 0)) %>% 
+
+  left_join(
+
+    enframe(
+
+      map_dbl(pages, fn_reviews_overall),
+
+      name = "EAN", value = "review_overall"
+
+    )
+
+  )

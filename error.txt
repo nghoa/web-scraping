@@ -1,0 +1,25 @@
+# Last Error Message - 13.03.2021 - Samstag:
+
+# Problem ist wahrscheinlich die Anzahl der Follower
+
+
+Looked up EAN:  9783744800013
+------------- Agent Number: 0 ---------------
+Author Link:  https://www.goodreads.com/author/show/5315196.Marah_Woolf
+Author Name:  Marah Woolf
+Looked up Author Link:  https://www.goodreads.com/author/show/5315196.Marah_Woolf
+------------- Agent Number: 0 ---------------
+{'follower_count': '462',
+ 'rating_avg': '4.15',
+ 'rating_count': '15,496',
+ 'review_count': '1,265'}
+Traceback (most recent call last):
+  File "goodreads_scraper.py", line 180, in <module>
+    start_crawler()
+  File "goodreads_scraper.py", line 175, in start_crawler
+    output_df = final_combine_data(start_df)
+  File "goodreads_scraper.py", line 149, in final_combine_data
+    new_df = new_df.append({'EAN': isbn, 'Autor': author_name, 'Average Rating': float(author_info['rating_avg']), 'Rating Anzahl': int(author_info['rating_count']), 'Reviews Anzahl': int(author_info['review_count'])}, ignore_index=True)
+ValueError: invalid literal for int() with base 10: '15,496'
+
+

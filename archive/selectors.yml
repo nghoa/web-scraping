@@ -1,0 +1,22 @@
+title:
+  css: '#productTitle'
+  type: Text
+author:
+  css: '#author notFaded'
+  type: Text
+rating:
+  css: i.a-icon-star
+  type: Text
+rating_number:
+  css: '#acrCustomerReviewText'
+  type: Text
+kindle_price:
+  css: 
+  type:
+book_price:
+  css:
+  type:
+softbook_price:
+  css:
+  type:
+

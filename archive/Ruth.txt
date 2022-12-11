@@ -1,0 +1,12 @@
+Amazon:
+	- Titel
+	- Ratings
+	- ...
+	
+	
+GoodReads:
+	- Follower raussuchen
+	- ...
+	
+	
+
